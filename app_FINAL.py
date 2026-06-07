@@ -286,7 +286,7 @@ def render_country_overview(df):
     countries = sorted(df["Country"].unique())
     default_country = pick_default(countries, ["Switzerland"])
 
-    c1, c2 = st.columns([1.2, 1.8])
+    c1, c2, c3 = st.columns([1.2, 1.8, 1.2])
 
     with c1:
         country = st.selectbox(
@@ -308,6 +308,14 @@ def render_country_overview(df):
             help="Add Male, Female or Total to compare lines.",
         )
 
+    with c3:
+        overview_layout = st.radio(
+            "Layout",
+            ["Desktop", "Mobile / tablet"],
+            horizontal=False,
+            help="Use Desktop for side-by-side facets; use Mobile / tablet for stacked charts.",
+        )
+
     if not groups:
         st.warning("Please select at least one student group to display the chart.")
         return
@@ -320,74 +328,131 @@ def render_country_overview(df):
 
     domains_present = [d for d in DOMAIN_ORDER if d in plot_df["Domain"].unique()]
 
-    fig = px.line(
-        plot_df,
-        x="TIME",
-        y="Value",
-        color="Group",
-        facet_col="Domain",
-        markers=True,
-        category_orders={
-            "Domain": domains_present,
-            "Group": ["Total", "Male", "Female"],
-        },
-        color_discrete_map=GROUP_COLORS,
-        labels={
-            "TIME": "Year",
-            "Value": "PISA score",
-            "Group": "Student group",
-        },
-        title=f"PISA scores in {country} over time",
-    )
-
-    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
-
     y_min = max(0, int(((df["Value"].min() - 10) // 10) * 10))
     y_max = int(((df["Value"].max() + 10) // 10 + 1) * 10)
-
     visible_years = sorted(plot_df["TIME"].unique())
 
-    fig.update_xaxes(
-        title_text="",
-        tickmode="array",
-        tickvals=visible_years,
-        ticktext=[str(year) for year in visible_years],
-        showticklabels=True,
-    )
-
-    if len(domains_present) >= 3:
-        fig.update_xaxes(title_text="Year", col=2)
-    else:
-        fig.update_xaxes(title_text="Year", col=1)
-
-    fig.update_yaxes(
-        matches="y",
-        range=[y_min, y_max],
-        showticklabels=False,
-        title_text="",
-    )
-
-    fig.update_yaxes(
-        title_text="PISA score",
-        showticklabels=True,
-        col=1,
-    )
-
-    for col in range(2, len(domains_present) + 1):
-        fig.update_yaxes(
-            title_text="",
-            showticklabels=False,
-            col=col,
+    # ----------------------------------------------------------------------- #
+    # Desktop layout: three facets side by side
+    # ----------------------------------------------------------------------- #
+    if overview_layout == "Desktop":
+        fig = px.line(
+            plot_df,
+            x="TIME",
+            y="Value",
+            color="Group",
+            facet_col="Domain",
+            markers=True,
+            category_orders={
+                "Domain": domains_present,
+                "Group": ["Total", "Male", "Female"],
+            },
+            color_discrete_map=GROUP_COLORS,
+            labels={
+                "TIME": "Year",
+                "Value": "PISA score",
+                "Group": "Student group",
+            },
+            title=f"PISA scores in {country} over time",
         )
 
-    fig.update_layout(
-        margin=dict(t=70, b=40),
-        legend_title_text="Student group",
-    )
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
 
-    style_axes(fig)
+        fig.update_xaxes(
+            title_text="",
+            tickmode="array",
+            tickvals=visible_years,
+            ticktext=[str(year) for year in visible_years],
+            showticklabels=True,
+        )
 
-    st.plotly_chart(fig, use_container_width=True)
+        if len(domains_present) >= 3:
+            fig.update_xaxes(title_text="Year", col=2)
+        else:
+            fig.update_xaxes(title_text="Year", col=1)
+
+        fig.update_yaxes(
+            matches="y",
+            range=[y_min, y_max],
+            showticklabels=False,
+            title_text="",
+        )
+
+        fig.update_yaxes(
+            title_text="PISA score",
+            showticklabels=True,
+            col=1,
+        )
+
+        for col in range(2, len(domains_present) + 1):
+            fig.update_yaxes(
+                title_text="",
+                showticklabels=False,
+                col=col,
+            )
+
+        fig.update_layout(
+            margin=dict(t=70, b=40),
+            legend_title_text="Student group",
+        )
+
+        style_axes(fig)
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    # ----------------------------------------------------------------------- #
+    # Mobile / tablet layout: one chart per domain, stacked vertically
+    # ----------------------------------------------------------------------- #
+    else:
+        st.markdown(f"#### PISA scores in {country} over time")
+
+        for domain in domains_present:
+            domain_df = plot_df[plot_df["Domain"] == domain].copy()
+
+            if domain_df.empty:
+                continue
+
+            fig = px.line(
+                domain_df,
+                x="TIME",
+                y="Value",
+                color="Group",
+                markers=True,
+                category_orders={
+                    "Group": ["Total", "Male", "Female"],
+                },
+                color_discrete_map=GROUP_COLORS,
+                labels={
+                    "TIME": "Year",
+                    "Value": "PISA score",
+                    "Group": "Student group",
+                },
+                title=domain,
+            )
+
+            fig.update_xaxes(
+                title_text="Year",
+                tickmode="array",
+                tickvals=visible_years,
+                ticktext=[str(year) for year in visible_years],
+                showticklabels=True,
+            )
+
+            fig.update_yaxes(
+                title_text="PISA score",
+                range=[y_min, y_max],
+                showticklabels=True,
+            )
+
+            fig.update_layout(
+                margin=dict(t=55, b=45),
+                height=360,
+                legend_title_text="Student group",
+            )
+
+            style_axes(fig)
+
+            st.plotly_chart(fig, use_container_width=True)
 
 
 # =========================================================================== #
@@ -434,8 +499,6 @@ def render_country_comparison(df):
                 value=years[-1],
             )
 
-    # Countries come from the full dataset, not from the selected domain/year.
-    # This keeps selected countries stable when domain, group or year changes.
     all_countries = sorted(df["Country"].unique())
 
     preferred = [
