@@ -363,13 +363,13 @@ def render_country_overview(df):
             tickvals=visible_years,
             ticktext=[str(year) for year in visible_years],
             range=x_range,
-            showticklabels=False,
+            showticklabels=True,
         )
 
-        # Year numbers and the "Year" axis title only on the middle panel;
-        # all panels still share the same x-axis range.
-        middle_col = (len(domains_present) + 1) // 2
-        fig.update_xaxes(title_text="Year", showticklabels=True, col=middle_col)
+        if len(domains_present) >= 3:
+            fig.update_xaxes(title_text="Year", col=2)
+        else:
+            fig.update_xaxes(title_text="Year", col=1)
 
         fig.update_yaxes(
             matches="y",
