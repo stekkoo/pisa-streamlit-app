@@ -320,6 +320,17 @@ def render_country_overview(df):
     y_max = int(((df["Value"].max() + 10) // 10 + 1) * 10)
     visible_years = sorted(plot_df["TIME"].unique())
 
+    # Shared x-axis range so that, for a given country, all three domains use
+    # exactly the same horizontal scaling in both the Desktop and the
+    # Mobile / tablet layout (the Desktop facets already share an x-axis;
+    # this makes the stacked Mobile charts match it).
+    if visible_years:
+        year_lo, year_hi = min(visible_years), max(visible_years)
+        x_pad = max(0.5, (year_hi - year_lo) * 0.05)
+        x_range = [year_lo - x_pad, year_hi + x_pad]
+    else:
+        x_range = None
+
     # ----------------------------------------------------------------------- #
     # Desktop layout: three facets side by side
     # ----------------------------------------------------------------------- #
@@ -351,6 +362,7 @@ def render_country_overview(df):
             tickmode="array",
             tickvals=visible_years,
             ticktext=[str(year) for year in visible_years],
+            range=x_range,
             showticklabels=True,
         )
 
@@ -444,6 +456,7 @@ def render_country_overview(df):
                 tickmode="array",
                 tickvals=visible_years,
                 ticktext=[str(year) for year in visible_years],
+                range=x_range,
                 showticklabels=True,
             )
 
