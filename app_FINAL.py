@@ -233,7 +233,8 @@ st.title("PISA Scores Across Time and Countries")
 st.write(
     "Explore OECD PISA scores through two interactive views: a stratified country "
     "overview and a ranked country comparison. The controls filter the data and "
-    "change the visualization directly, going beyond hover and zoom."
+    "change the visualization directly, going beyond hover and zoom. "
+    "The default view uses Total to reduce cognitive load; Male and Female can be added for comparison."
 )
 
 st.caption(
@@ -252,8 +253,10 @@ if data is None or data.empty:
     st.stop()
 
 # --------------------------------------------------------------------------- #
-# View selection
+# Divider and view selection
 # --------------------------------------------------------------------------- #
+st.divider()
+
 VIEWS = ["Country overview", "Country comparison"]
 
 if hasattr(st, "segmented_control"):
@@ -274,8 +277,6 @@ else:
         horizontal=True,
         label_visibility="collapsed",
     )
-
-st.divider()
 
 
 # =========================================================================== #
