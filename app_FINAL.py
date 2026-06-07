@@ -1,15 +1,3 @@
-"""
-PISA Scores Across Time and Countries
--------------------------------------
-A minimalistic interactive Streamlit app to explore OECD PISA scores
-by country, domain, student group and year.
-
-Run locally with:
-    python -m streamlit run app.py
-
-Requirements: streamlit, pandas, plotly
-"""
-
 import os
 import glob
 
@@ -238,7 +226,7 @@ st.write(
 )
 
 st.caption(
-    "Data source: Kaggle – PISA Performance Scores by Country, based on OECD PISA "
+    "Data source: Kaggle – PISA performance scores by country, based on OECD PISA "
     "performance scores for reading, mathematics and science across countries, 2000–2018."
 )
 
@@ -391,9 +379,26 @@ def render_country_overview(df):
                 col=col,
             )
 
+        # Single horizontal legend, centered above the facets (not on the right).
+        # Title is left-aligned and placed higher so it never collides with it.
         fig.update_layout(
-            margin=dict(t=70, b=40),
-            legend_title_text="Student group",
+            margin=dict(t=130, b=40),
+            title=dict(
+                text=f"PISA scores in {country} over time",
+                x=0,
+                xanchor="left",
+                y=0.98,
+                yanchor="top",
+            ),
+            showlegend=True,
+            legend=dict(
+                title_text="",
+                orientation="h",
+                yanchor="bottom",
+                y=1.14,
+                xanchor="center",
+                x=0.5,
+            ),
         )
 
         style_axes(fig)
@@ -401,16 +406,20 @@ def render_country_overview(df):
         st.plotly_chart(fig, use_container_width=True)
 
     # ----------------------------------------------------------------------- #
-    # Mobile / tablet layout: one chart per domain, stacked vertically
+    # Mobile / tablet layout: one chart per domain, stacked vertically.
+    # The legend is shown only once, centered above the first chart.
     # ----------------------------------------------------------------------- #
     else:
         st.markdown(f"#### PISA scores in {country} over time")
 
-        for domain in domains_present:
+        for i, domain in enumerate(domains_present):
             domain_df = plot_df[plot_df["Domain"] == domain].copy()
 
             if domain_df.empty:
                 continue
+
+            # Only the first chart carries the (single, shared) legend.
+            show_legend = i == 0
 
             fig = px.line(
                 domain_df,
@@ -444,11 +453,30 @@ def render_country_overview(df):
                 showticklabels=True,
             )
 
-            fig.update_layout(
-                margin=dict(t=55, b=45),
-                height=360,
-                legend_title_text="Student group",
-            )
+            if show_legend:
+                # Horizontal legend, centered above the first chart.
+                # Title is left-aligned so it never collides with the legend.
+                fig.update_layout(
+                    margin=dict(t=115, b=45),
+                    height=420,
+                    showlegend=True,
+                    title=dict(text=domain, x=0, xanchor="left", y=0.98, yanchor="top"),
+                    legend=dict(
+                        title_text="",
+                        orientation="h",
+                        yanchor="bottom",
+                        y=1.12,
+                        xanchor="center",
+                        x=0.5,
+                    ),
+                )
+            else:
+                # All other charts: no legend at all.
+                fig.update_layout(
+                    margin=dict(t=55, b=45),
+                    height=360,
+                    showlegend=False,
+                )
 
             style_axes(fig)
 
