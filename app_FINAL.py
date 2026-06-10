@@ -316,20 +316,10 @@ def render_country_overview(df):
 
     domains_present = [d for d in DOMAIN_ORDER if d in plot_df["Domain"].unique()]
 
-    y_min = max(0, int(((df["Value"].min() - 10) // 10) * 10))
+    # y-axis always starts at 0 (full baseline) for the country overview.
+    y_min = 0
     y_max = int(((df["Value"].max() + 10) // 10 + 1) * 10)
     visible_years = sorted(plot_df["TIME"].unique())
-
-    # Shared x-axis range so that, for a given country, all three domains use
-    # exactly the same horizontal scaling in both the Desktop and the
-    # Mobile / tablet layout (the Desktop facets already share an x-axis;
-    # this makes the stacked Mobile charts match it).
-    if visible_years:
-        year_lo, year_hi = min(visible_years), max(visible_years)
-        x_pad = max(0.5, (year_hi - year_lo) * 0.05)
-        x_range = [year_lo - x_pad, year_hi + x_pad]
-    else:
-        x_range = None
 
     # ----------------------------------------------------------------------- #
     # Desktop layout: three facets side by side
@@ -362,7 +352,6 @@ def render_country_overview(df):
             tickmode="array",
             tickvals=visible_years,
             ticktext=[str(year) for year in visible_years],
-            range=x_range,
             showticklabels=True,
         )
 
@@ -391,26 +380,9 @@ def render_country_overview(df):
                 col=col,
             )
 
-        # Single horizontal legend, centered above the facets (not on the right).
-        # Title is left-aligned and placed higher so it never collides with it.
         fig.update_layout(
-            margin=dict(t=130, b=40),
-            title=dict(
-                text=f"PISA scores in {country} over time",
-                x=0,
-                xanchor="left",
-                y=0.98,
-                yanchor="top",
-            ),
-            showlegend=True,
-            legend=dict(
-                title_text="",
-                orientation="h",
-                yanchor="bottom",
-                y=1.14,
-                xanchor="center",
-                x=0.5,
-            ),
+            margin=dict(t=70, b=40),
+            legend_title_text="Student group",
         )
 
         style_axes(fig)
@@ -418,20 +390,16 @@ def render_country_overview(df):
         st.plotly_chart(fig, use_container_width=True)
 
     # ----------------------------------------------------------------------- #
-    # Mobile / tablet layout: one chart per domain, stacked vertically.
-    # The legend is shown only once, centered above the first chart.
+    # Mobile / tablet layout: one chart per domain, stacked vertically
     # ----------------------------------------------------------------------- #
     else:
         st.markdown(f"#### PISA scores in {country} over time")
 
-        for i, domain in enumerate(domains_present):
+        for domain in domains_present:
             domain_df = plot_df[plot_df["Domain"] == domain].copy()
 
             if domain_df.empty:
                 continue
-
-            # Only the first chart carries the (single, shared) legend.
-            show_legend = i == 0
 
             fig = px.line(
                 domain_df,
@@ -456,7 +424,6 @@ def render_country_overview(df):
                 tickmode="array",
                 tickvals=visible_years,
                 ticktext=[str(year) for year in visible_years],
-                range=x_range,
                 showticklabels=True,
             )
 
@@ -466,30 +433,11 @@ def render_country_overview(df):
                 showticklabels=True,
             )
 
-            if show_legend:
-                # Horizontal legend, centered above the first chart.
-                # Title is left-aligned so it never collides with the legend.
-                fig.update_layout(
-                    margin=dict(t=115, b=45),
-                    height=420,
-                    showlegend=True,
-                    title=dict(text=domain, x=0, xanchor="left", y=0.98, yanchor="top"),
-                    legend=dict(
-                        title_text="",
-                        orientation="h",
-                        yanchor="bottom",
-                        y=1.12,
-                        xanchor="center",
-                        x=0.5,
-                    ),
-                )
-            else:
-                # All other charts: no legend at all.
-                fig.update_layout(
-                    margin=dict(t=55, b=45),
-                    height=360,
-                    showlegend=False,
-                )
+            fig.update_layout(
+                margin=dict(t=55, b=45),
+                height=360,
+                legend_title_text="Student group",
+            )
 
             style_axes(fig)
 
@@ -590,7 +538,8 @@ def render_country_comparison(df):
 
     point_color = GROUP_COLORS.get(group, THEME_COLOR)
 
-    x_base = max(0, int((plot_df["Value"].min() // 10) * 10) - 10)
+    # Value axis (x, because the chart is horizontal) always starts at 0.
+    x_base = 0
     x_max = int(((plot_df["Value"].max() + 10) // 10 + 1) * 10)
 
     chart_height = max(420, 34 * len(plot_df) + 140)
